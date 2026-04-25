@@ -237,7 +237,7 @@ export const LogStream = ({ deploymentId }: { deploymentId: string | null }) => 
 
         <div
           ref={scrollRef}
-          className="h-[300px] overflow-auto rounded-md border bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-100 shadow-inner dark:border-slate-800"
+          className="h-[300px] overflow-auto rounded-md border bg-[hsl(var(--popover))] p-3 font-mono text-xs leading-5 text-[hsl(var(--popover-foreground))] shadow-inner"
           onScroll={(event) => {
             const element = event.currentTarget;
             const distance = element.scrollHeight - element.scrollTop - element.clientHeight;
@@ -245,15 +245,22 @@ export const LogStream = ({ deploymentId }: { deploymentId: string | null }) => 
           }}
         >
           {!deploymentId ? (
-            <div className="text-slate-400">Select a deployment</div>
+            <div className="text-muted-foreground">Select a deployment</div>
           ) : visibleLogs.length === 0 ? (
-            <div className="text-slate-400">{searchMode ? "No matching logs" : "Waiting for logs"}</div>
+            <div className="text-muted-foreground">{searchMode ? "No matching logs" : "Waiting for logs"}</div>
           ) : (
             visibleLogs.map((log) => (
-              <div key={log.seq} className={log.stream === "stderr" ? "text-red-200" : "text-slate-100"}>
-                <span className="text-slate-500">{String(log.seq).padStart(4, "0")}</span>{" "}
-                <span className="text-amber-200">{log.phase}</span>{" "}
-                <span className="text-slate-500">{log.stream}</span> {log.message}
+              <div
+                key={log.seq}
+                className={
+                  log.stream === "stderr"
+                    ? "text-destructive"
+                    : "text-[hsl(var(--popover-foreground))]"
+                }
+              >
+                <span className="text-muted-foreground">{String(log.seq).padStart(4, "0")}</span>{" "}
+                <span className="text-[hsl(var(--chart-1))]">{log.phase}</span>{" "}
+                <span className="text-[hsl(var(--chart-3))]">{log.stream}</span> {log.message}
               </div>
             ))
           )}
