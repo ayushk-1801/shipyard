@@ -1,6 +1,6 @@
-# Brimble Deployment Pipeline
+# Shipyard
 
-A one-page local PaaS slice for the Brimble take-home: Vite + TanStack UI, Hono API, SQLite state, Railpack image builds, Docker runtime, and Caddy as the only ingress.
+A one-page local PaaS slice for a deployment pipeline take-home: Vite + TanStack UI, Hono API, SQLite state, Railpack image builds, Docker runtime, and Caddy as the only ingress.
 
 ## Run
 

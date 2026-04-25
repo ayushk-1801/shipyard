@@ -131,7 +131,7 @@ export const Dashboard = () => {
               <Server className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-semibold tracking-normal">Brimble Pipeline</h1>
+              <h1 className="truncate text-xl font-semibold tracking-normal">Shipyard</h1>
               <p className="truncate text-sm text-muted-foreground">Builds, runtime, logs, and Caddy ingress</p>
             </div>
           </div>

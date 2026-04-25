@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 export type Theme = "light" | "dark";
 
-const storageKey = "brimble-theme";
+const storageKey = "shipyard-theme";
 
 const preferredTheme = (): Theme => {
   if (typeof window === "undefined") return "light";

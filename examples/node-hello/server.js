@@ -10,7 +10,7 @@ const server = http.createServer((request, response) => {
   response.end(`<!doctype html>
 <html>
   <head>
-    <title>Brimble sample</title>
+    <title>Shipyard sample</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
       body {

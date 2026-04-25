@@ -105,7 +105,7 @@ app.use("/api/deployments", async (c, next) => {
 app.get("/api/health", (c) =>
   c.json({
     ok: true,
-    service: "brimble-assignment-api"
+    service: "shipyard-api"
   })
 );
 
