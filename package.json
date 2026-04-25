@@ -1,5 +1,5 @@
 {
-  "name": "brimble-assignment",
+  "name": "shipyard",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "dev:api": "npm run dev -w @brimble/api",
-    "dev:web": "npm run dev -w @brimble/web",
+    "dev:api": "npm run dev -w @shipyard/api",
+    "dev:web": "npm run dev -w @shipyard/web",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },

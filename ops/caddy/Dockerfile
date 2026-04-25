@@ -6,10 +6,10 @@ COPY tsconfig.base.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY examples/node-hello/package.json examples/node-hello/package.json
-RUN npm ci --workspace @brimble/web --include-workspace-root=false
+RUN npm ci --workspace @shipyard/web --include-workspace-root=false
 
 COPY apps/web apps/web
-RUN npm run build -w @brimble/web
+RUN npm run build -w @shipyard/web
 
 FROM caddy:2.10-alpine
 

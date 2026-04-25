@@ -10,9 +10,9 @@ const deployment: Deployment = {
   sourcePath: null,
   gitRef: null,
   status: "running",
-  imageTag: "brimble-sample-app:dep",
+  imageTag: "shipyard-sample-app:dep",
   containerId: "container",
-  containerName: "brimble-sample-app-dep",
+  containerName: "shipyard-sample-app-dep",
   containerPort: 3000,
   liveUrl: "http://localhost:8080/d/sample-app/",
   hostUrl: "http://sample-app.localhost:8080/",
@@ -30,7 +30,7 @@ describe("renderCaddyfile", () => {
     expect(caddyfile).toContain("handle /api/*");
     expect(caddyfile).toContain("@host_sample_app host sample-app.localhost");
     expect(caddyfile).toContain("handle_path /d/sample-app/*");
-    expect(caddyfile).toContain("reverse_proxy brimble-sample-app-dep:3000");
+    expect(caddyfile).toContain("reverse_proxy shipyard-sample-app-dep:3000");
   });
 
   it("uses the configured public hostname for host routes", () => {

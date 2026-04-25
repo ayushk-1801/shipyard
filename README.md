@@ -52,7 +52,7 @@ Once a deployment is running, use the row actions to redeploy the current source
 - `ops/caddy`: Caddy image that builds/serves the frontend and exposes only port `8080` on the host.
 - `examples/node-hello`: Dockerfile-free sample app for Railpack.
 
-The backend talks to the Compose-managed BuildKit service through `BUILDKIT_HOST` for Railpack builds, and mounts `/var/run/docker.sock` to load/start deployment containers on the shared `brimble-runtime` network. It periodically reconciles SQLite `running` deployments against Docker so stale containers are marked failed and removed from Caddy routes. That is intentionally simple for this local assignment and intentionally not a production security model for untrusted multi-tenant code.
+The backend talks to the Compose-managed BuildKit service through `BUILDKIT_HOST` for Railpack builds, and mounts `/var/run/docker.sock` to load/start deployment containers on the shared `shipyard-runtime` network. It periodically reconciles SQLite `running` deployments against Docker so stale containers are marked failed and removed from Caddy routes. That is intentionally simple for this local assignment and intentionally not a production security model for untrusted multi-tenant code.
 
 Redeploy and rollback are handled as replacement operations for the same slug. The backend starts the candidate container first, waits for an HTTP response, reloads Caddy with the new target, then gracefully stops the previous container. During an active replacement the previous running route stays in the generated Caddyfile, so a failed health check or failed Caddy reload does not strand the app.
 
@@ -94,13 +94,13 @@ docker compose down
 Remove deployment containers created by the app:
 
 ```bash
-docker ps -aq --filter label=brimble.assignment=true | xargs -r docker rm -f
+docker ps -aq --filter label=shipyard.assignment=true | xargs -r docker rm -f
 ```
 
 Remove local images from sample deploys:
 
 ```bash
-docker images --format '{{.Repository}}:{{.Tag}}' | grep '^brimble-' | xargs -r docker rmi
+docker images --format '{{.Repository}}:{{.Tag}}' | grep '^shipyard-' | xargs -r docker rmi
 ```
 
 ## Tests
@@ -123,12 +123,12 @@ npm run build
 
 Roughly 6-7 hours.
 
-## Brimble Feedback
+## Deploy Feedback
 
-I deployed a small React boilerplate app on Brimble:
+I deployed a small React boilerplate app:
 
 ```text
-https://my-react-app.brimble.app/
+_add public deployment link before submission_
 ```
 
-The feedback write-up is in `docs/brimble-feedback.md`.
+The feedback write-up is in `docs/deploy-feedback.md`.

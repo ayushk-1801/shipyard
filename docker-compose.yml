@@ -1,3 +1,5 @@
+name: shipyard
+
 services:
   backend:
     build:
@@ -6,19 +8,19 @@ services:
     environment:
       NODE_ENV: production
       PORT: "3001"
-      DATABASE_PATH: /data/brimble.db
+      DATABASE_PATH: /data/shipyard.db
       WORKSPACE_ROOT: /workspaces
       PUBLIC_BASE_URL: http://localhost:8080
       CADDY_ADMIN_URL: http://caddy:2019
-      DOCKER_NETWORK: brimble-runtime
+      DOCKER_NETWORK: shipyard-runtime
       BUILDKIT_HOST: tcp://buildkit:1234
       RAILPACK_VERSION: v0.15.1
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - brimble-data:/data
-      - brimble-workspaces:/workspaces
+      - shipyard-data:/data
+      - shipyard-workspaces:/workspaces
     networks:
-      - brimble-runtime
+      - shipyard-runtime
     depends_on:
       - buildkit
     restart: unless-stopped
@@ -28,9 +30,9 @@ services:
     command: ["--addr", "tcp://0.0.0.0:1234"]
     privileged: true
     volumes:
-      - brimble-buildkit:/var/lib/buildkit
+      - shipyard-buildkit:/var/lib/buildkit
     networks:
-      - brimble-runtime
+      - shipyard-runtime
     restart: unless-stopped
 
   caddy:
@@ -40,16 +42,16 @@ services:
     ports:
       - "8080:80"
     networks:
-      - brimble-runtime
+      - shipyard-runtime
     depends_on:
       - backend
     restart: unless-stopped
 
 volumes:
-  brimble-data:
-  brimble-workspaces:
-  brimble-buildkit:
+  shipyard-data:
+  shipyard-workspaces:
+  shipyard-buildkit:
 
 networks:
-  brimble-runtime:
-    name: brimble-runtime
+  shipyard-runtime:
+    name: shipyard-runtime

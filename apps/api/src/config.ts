@@ -14,7 +14,7 @@ const publicUrl = new URL(publicBaseUrl);
 
 export const config = {
   port: numberFromEnv("PORT", 3001),
-  databasePath: process.env.DATABASE_PATH ?? path.resolve("data/brimble.db"),
+  databasePath: process.env.DATABASE_PATH ?? path.resolve("data/shipyard.db"),
   workspaceRoot: process.env.WORKSPACE_ROOT ?? path.resolve("workspaces"),
   publicBaseUrl,
   publicHostname:
@@ -22,7 +22,7 @@ export const config = {
       ? "localhost"
       : publicUrl.hostname,
   caddyAdminUrl: stripTrailingSlash(process.env.CADDY_ADMIN_URL ?? "http://localhost:2019"),
-  dockerNetwork: process.env.DOCKER_NETWORK ?? "brimble-runtime",
+  dockerNetwork: process.env.DOCKER_NETWORK ?? "shipyard-runtime",
   railpackBin: process.env.RAILPACK_BIN ?? "railpack",
   defaultContainerPort: numberFromEnv("DEFAULT_CONTAINER_PORT", 3000),
   maxUploadBytes: numberFromEnv("MAX_UPLOAD_BYTES", 50 * 1024 * 1024),

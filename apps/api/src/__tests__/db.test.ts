@@ -40,7 +40,7 @@ const makeImage = (index: number, patch: Partial<DeploymentImage> = {}): Deploym
     id: `image_${index}`,
     deploymentId: "dep_1",
     slug: "sample",
-    imageTag: `brimble-sample:${index}`,
+    imageTag: `shipyard-sample:${index}`,
     sourceHash: `hash-${index}`,
     reason: "deploy",
     isActive: false,
@@ -51,7 +51,7 @@ const makeImage = (index: number, patch: Partial<DeploymentImage> = {}): Deploym
 };
 
 beforeEach(async () => {
-  dir = await fs.mkdtemp(path.join(os.tmpdir(), "brimble-db-"));
+  dir = await fs.mkdtemp(path.join(os.tmpdir(), "shipyard-db-"));
   dbPath = path.join(dir, "test.db");
   store = new DeploymentStore(dbPath);
 });
@@ -87,7 +87,7 @@ describe("DeploymentStore", () => {
     store.insertDeployment(
       makeDeployment({
         status: "running",
-        imageTag: "brimble-sample:old",
+        imageTag: "shipyard-sample:old",
         finishedAt: new Date().toISOString()
       })
     );
@@ -98,7 +98,7 @@ describe("DeploymentStore", () => {
     expect(store.listImages("dep_1")).toMatchObject([
       {
         id: "backfill-dep_1",
-        imageTag: "brimble-sample:old",
+        imageTag: "shipyard-sample:old",
         reason: "backfill",
         isActive: true
       }

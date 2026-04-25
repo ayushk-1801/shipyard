@@ -6,10 +6,10 @@ COPY tsconfig.base.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY examples/node-hello/package.json examples/node-hello/package.json
-RUN npm ci --workspace @brimble/api --include-workspace-root=false
+RUN npm ci --workspace @shipyard/api --include-workspace-root=false
 
 COPY apps/api apps/api
-RUN npm run build -w @brimble/api
+RUN npm run build -w @shipyard/api
 
 FROM node:22-bookworm-slim AS runtime
 
@@ -25,7 +25,7 @@ COPY package.json package-lock.json* ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY examples/node-hello/package.json examples/node-hello/package.json
-RUN npm ci --omit=dev --workspace @brimble/api --include-workspace-root=false
+RUN npm ci --omit=dev --workspace @shipyard/api --include-workspace-root=false
 
 COPY --from=builder /app/apps/api/dist apps/api/dist
 

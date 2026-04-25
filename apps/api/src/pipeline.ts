@@ -303,7 +303,7 @@ export class DeploymentPipeline {
 
   private async activateImage(deployment: Deployment, image: DeploymentImage, operation: OperationController) {
     const currentContainerName = deployment.containerName;
-    const candidateName = `brimble-${deployment.slug}-${operation.id.slice(0, 8)}`;
+    const candidateName = `shipyard-${deployment.slug}-${operation.id.slice(0, 8)}`;
     operation.candidateContainerName = candidateName;
 
     deployment = this.transition(deployment.id, "deploying", {
@@ -398,7 +398,7 @@ export class DeploymentPipeline {
       id,
       deploymentId: deployment.id,
       slug: deployment.slug,
-      imageTag: `brimble-${deployment.slug}:${id.slice(0, 12)}`,
+      imageTag: `shipyard-${deployment.slug}:${id.slice(0, 12)}`,
       sourceHash,
       reason,
       isActive: false,
@@ -435,11 +435,11 @@ export class DeploymentPipeline {
         }
       },
       Labels: {
-        "brimble.assignment": "true",
-        "brimble.deployment.id": deployment.id,
-        "brimble.deployment.slug": deployment.slug,
-        "brimble.image.id": imageId,
-        "brimble.image.tag": imageTag
+        "shipyard.assignment": "true",
+        "shipyard.deployment.id": deployment.id,
+        "shipyard.deployment.slug": deployment.slug,
+        "shipyard.image.id": imageId,
+        "shipyard.image.tag": imageTag
       }
     });
 
