@@ -1,6 +1,6 @@
 # Deploy Feedback
 
-Deploy link: _add public deployment link before submission_
+Deploy link: https://my-react-app.brimble.app/
 
 I deployed a simple React boilerplate app. The happy path worked: I was able to get from a project to a live URL without needing to set up external infrastructure or write deployment glue. For a small frontend app, the flow felt direct enough and the resulting URL was easy to verify.
 
