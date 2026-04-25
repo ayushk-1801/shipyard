@@ -1,7 +1,8 @@
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, RefreshCcw, XCircle } from "lucide-react";
 import type { Deployment } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -9,6 +10,9 @@ interface DeploymentsTableProps {
   deployments: Deployment[];
   selectedId: string | null;
   onSelect: (deployment: Deployment) => void;
+  onRedeploy: (deployment: Deployment) => void;
+  onCancel: (deployment: Deployment) => void;
+  busyId?: string | null;
 }
 
 const shortDate = (value: string) =>
@@ -19,7 +23,16 @@ const shortDate = (value: string) =>
     day: "numeric"
   }).format(new Date(value));
 
-export const DeploymentsTable = ({ deployments, selectedId, onSelect }: DeploymentsTableProps) => (
+const cancelable = new Set(["pending", "building", "deploying"]);
+
+export const DeploymentsTable = ({
+  deployments,
+  selectedId,
+  onSelect,
+  onRedeploy,
+  onCancel,
+  busyId
+}: DeploymentsTableProps) => (
   <Card className="min-h-[370px]">
     <CardHeader>
       <CardTitle>Deployments</CardTitle>
@@ -33,12 +46,13 @@ export const DeploymentsTable = ({ deployments, selectedId, onSelect }: Deployme
             <TableHead>Image</TableHead>
             <TableHead>Live</TableHead>
             <TableHead>Updated</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {deployments.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="h-44 text-center text-muted-foreground">
+              <TableCell colSpan={6} className="h-44 text-center text-muted-foreground">
                 No deployments yet
               </TableCell>
             </TableRow>
@@ -81,6 +95,36 @@ export const DeploymentsTable = ({ deployments, selectedId, onSelect }: Deployme
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                   {shortDate(deployment.updatedAt)}
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      title="Redeploy"
+                      disabled={busyId === deployment.id || cancelable.has(deployment.status)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onRedeploy(deployment);
+                      }}
+                    >
+                      <RefreshCcw className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      title="Cancel"
+                      disabled={busyId === deployment.id || !cancelable.has(deployment.status)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onCancel(deployment);
+                      }}
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))

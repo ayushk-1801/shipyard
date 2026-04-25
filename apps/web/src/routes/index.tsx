@@ -1,23 +1,90 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Activity, Server } from "lucide-react";
 import { DeployForm } from "@/components/deploy-form";
 import { DeploymentsTable } from "@/components/deployments-table";
+import { ImageHistory } from "@/components/image-history";
 import { LogStream } from "@/components/log-stream";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { deploymentsQueryKey, listDeployments, type Deployment } from "@/lib/api";
+import {
+  cancelDeployment,
+  deploymentImagesQueryKey,
+  deploymentsQueryKey,
+  listDeploymentImages,
+  listDeployments,
+  redeployDeployment,
+  rollbackDeployment,
+  type Deployment,
+  type DeploymentImage
+} from "@/lib/api";
 import { useDeploymentEvents } from "@/hooks/use-deployment-events";
+import { toast } from "sonner";
 
 export const Dashboard = () => {
   useDeploymentEvents();
+  const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: deploymentsQueryKey,
     queryFn: listDeployments
   });
 
   const deployments = data?.deployments ?? [];
+  const selectedDeployment = deployments.find((deployment) => deployment.id === selectedId) ?? null;
+  const activeStatuses = ["pending", "building", "deploying"];
+  const selectedHasActiveWork = selectedDeployment
+    ? activeStatuses.includes(selectedDeployment.status)
+    : false;
+
+  const imagesQuery = useQuery({
+    queryKey: deploymentImagesQueryKey(selectedId),
+    queryFn: () => listDeploymentImages(selectedId!),
+    enabled: Boolean(selectedId),
+    refetchInterval: selectedHasActiveWork ? 2000 : false
+  });
+
+  const refreshAfterAction = async (deploymentId: string) => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: deploymentsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: deploymentImagesQueryKey(deploymentId) })
+    ]);
+  };
+
+  const redeployMutation = useMutation({
+    mutationFn: redeployDeployment,
+    onMutate: (deploymentId) => setBusyId(deploymentId),
+    onSuccess: (_result, deploymentId) => {
+      toast.success("Redeploy queued.");
+      void refreshAfterAction(deploymentId);
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to redeploy."),
+    onSettled: () => setBusyId(null)
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: cancelDeployment,
+    onMutate: (deploymentId) => setBusyId(deploymentId),
+    onSuccess: (_result, deploymentId) => {
+      toast.success("Deployment canceled.");
+      void refreshAfterAction(deploymentId);
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to cancel."),
+    onSettled: () => setBusyId(null)
+  });
+
+  const rollbackMutation = useMutation({
+    mutationFn: ({ deploymentId, imageId }: { deploymentId: string; imageId: string }) =>
+      rollbackDeployment(deploymentId, imageId),
+    onMutate: ({ deploymentId }) => setBusyId(deploymentId),
+    onSuccess: (_result, variables) => {
+      toast.success("Rollback queued.");
+      void refreshAfterAction(variables.deploymentId);
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to rollback."),
+    onSettled: () => setBusyId(null)
+  });
 
   useEffect(() => {
     if (!selectedId && deployments[0]) {
@@ -34,6 +101,10 @@ export const Dashboard = () => {
   }, [deployments]);
 
   const selectDeployment = (deployment: Deployment) => setSelectedId(deployment.id);
+  const rollbackImage = (image: DeploymentImage) => {
+    if (!selectedId) return;
+    rollbackMutation.mutate({ deploymentId: selectedId, imageId: image.id });
+  };
 
   return (
     <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8">
@@ -66,10 +137,25 @@ export const Dashboard = () => {
 
         <section className="grid gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
           <DeployForm onCreated={selectDeployment} />
-          <DeploymentsTable deployments={deployments} selectedId={selectedId} onSelect={selectDeployment} />
+          <DeploymentsTable
+            deployments={deployments}
+            selectedId={selectedId}
+            onSelect={selectDeployment}
+            onRedeploy={(deployment) => redeployMutation.mutate(deployment.id)}
+            onCancel={(deployment) => cancelMutation.mutate(deployment.id)}
+            busyId={busyId}
+          />
         </section>
 
-        <LogStream deploymentId={selectedId} />
+        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
+          <LogStream deploymentId={selectedId} />
+          <ImageHistory
+            images={imagesQuery.data?.images ?? []}
+            loading={imagesQuery.isLoading}
+            busy={Boolean(busyId) || selectedHasActiveWork}
+            onRollback={rollbackImage}
+          />
+        </section>
       </div>
     </main>
   );

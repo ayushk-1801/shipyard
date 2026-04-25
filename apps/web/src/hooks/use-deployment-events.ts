@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Deployment } from "@/lib/api";
-import { deploymentsQueryKey } from "@/lib/api";
+import { deploymentImagesQueryKey, deploymentsQueryKey } from "@/lib/api";
 
 export const useDeploymentEvents = () => {
   const queryClient = useQueryClient();
@@ -24,6 +24,7 @@ export const useDeploymentEvents = () => {
           : [deployment, ...current.deployments];
         return { deployments };
       });
+      void queryClient.invalidateQueries({ queryKey: deploymentImagesQueryKey(deployment.id) });
     });
 
     return () => source.close();
