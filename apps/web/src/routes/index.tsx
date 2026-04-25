@@ -125,7 +125,7 @@ export const Dashboard = () => {
   return (
     <main className="min-h-screen bg-background">
       <div className="border-b bg-card/75 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+        <div className="mx-auto flex max-w-[96rem] flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
               <Server className="h-5 w-5" />
@@ -154,7 +154,7 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-[96rem] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
         <section className="grid overflow-hidden rounded-lg border bg-card shadow-sm md:grid-cols-[1.25fr_1fr] xl:grid-cols-[1.35fr_repeat(4,minmax(0,1fr))]">
           <div className="border-b p-4 md:border-b-0 md:border-r">
             <div className="flex items-center gap-3">
