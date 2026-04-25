@@ -4,9 +4,10 @@ import { GitBranch, PackageOpen, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { createDeployment, deploymentsQueryKey, type Deployment, type SourceType } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface DeployFormProps {
@@ -42,11 +43,13 @@ export const DeployForm = ({ onCreated }: DeployFormProps) => {
   };
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader>
         <CardTitle>New Deployment</CardTitle>
+        <CardDescription>Build with Railpack and route through Caddy.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <Separator />
+      <CardContent className="pt-5">
         <form ref={formRef} onSubmit={submit} className="space-y-4">
           <Tabs value={sourceType} onValueChange={(value) => setSourceType(value as SourceType)}>
             <TabsList className="grid w-full grid-cols-2">

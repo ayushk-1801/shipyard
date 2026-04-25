@@ -3,7 +3,9 @@ import type { Deployment } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface DeploymentsTableProps {
@@ -13,6 +15,7 @@ interface DeploymentsTableProps {
   onRedeploy: (deployment: Deployment) => void;
   onCancel: (deployment: Deployment) => void;
   busyId?: string | null;
+  loading?: boolean;
 }
 
 const shortDate = (value: string) =>
@@ -31,13 +34,16 @@ export const DeploymentsTable = ({
   onSelect,
   onRedeploy,
   onCancel,
-  busyId
+  busyId,
+  loading
 }: DeploymentsTableProps) => (
-  <Card className="min-h-[370px]">
+  <Card className="min-h-[370px] overflow-hidden">
     <CardHeader>
       <CardTitle>Deployments</CardTitle>
+      <CardDescription>Current app state, active image, and ingress URL.</CardDescription>
     </CardHeader>
-    <CardContent>
+    <Separator />
+    <CardContent className="pt-2">
       <Table>
         <TableHeader>
           <TableRow>
@@ -53,14 +59,22 @@ export const DeploymentsTable = ({
           {deployments.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} className="h-44 text-center text-muted-foreground">
-                No deployments yet
+                {loading ? (
+                  <div className="mx-auto grid max-w-xl gap-3">
+                    <Skeleton className="h-10" />
+                    <Skeleton className="h-10" />
+                    <Skeleton className="h-10" />
+                  </div>
+                ) : (
+                  "No deployments yet"
+                )}
               </TableCell>
             </TableRow>
           ) : (
             deployments.map((deployment) => (
               <TableRow
                 key={deployment.id}
-                className={cn("cursor-pointer", selectedId === deployment.id && "bg-muted")}
+                className={cn("cursor-pointer", selectedId === deployment.id && "bg-muted/80")}
                 onClick={() => onSelect(deployment)}
               >
                 <TableCell>

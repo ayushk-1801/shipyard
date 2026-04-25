@@ -13,7 +13,7 @@ export const TabsList = ({ className, ...props }: React.ComponentPropsWithoutRef
 export const TabsTrigger = ({ className, ...props }: React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>) => (
   <TabsPrimitive.Trigger
     className={cn(
-      "inline-flex h-7 items-center justify-center whitespace-nowrap rounded px-3 text-sm font-medium transition-colors data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+      "inline-flex h-7 items-center justify-center whitespace-nowrap rounded px-3 text-sm font-medium transition-colors data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
       className
     )}
     {...props}

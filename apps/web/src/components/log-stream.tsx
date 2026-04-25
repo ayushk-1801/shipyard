@@ -5,9 +5,11 @@ import { applyLogRetention, searchDeploymentLogs, type DeploymentLog } from "@/l
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
 const phases = ["system", "clone", "extract", "build", "deploy", "runtime"] as const;
@@ -93,10 +95,11 @@ export const LogStream = ({ deploymentId }: { deploymentId: string | null }) => 
   };
 
   return (
-    <Card className="min-h-[370px]">
+    <Card className="min-h-[370px] overflow-hidden">
       <CardHeader className="flex-row items-center justify-between gap-3">
         <div className="space-y-1">
           <CardTitle>Logs</CardTitle>
+          <CardDescription>Live SSE stream with persisted replay and search.</CardDescription>
           {status ? (
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={status.status} />
@@ -106,7 +109,7 @@ export const LogStream = ({ deploymentId }: { deploymentId: string | null }) => 
                     href={status.liveUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-300"
                   >
                     Path
                     <ExternalLink className="h-3 w-3" />
@@ -115,7 +118,7 @@ export const LogStream = ({ deploymentId }: { deploymentId: string | null }) => 
                     href={status.hostUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-300"
                   >
                     Host
                     <ExternalLink className="h-3 w-3" />
@@ -130,7 +133,8 @@ export const LogStream = ({ deploymentId }: { deploymentId: string | null }) => 
           SSE
         </Badge>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <Separator />
+      <CardContent className="space-y-3 pt-5">
         <div className="grid gap-3 rounded-md border p-3 lg:grid-cols-[minmax(0,1fr)_150px_130px_96px_auto]">
           <div className="space-y-1">
             <Label htmlFor="log-query">Search logs</Label>
@@ -147,9 +151,8 @@ export const LogStream = ({ deploymentId }: { deploymentId: string | null }) => 
           </div>
           <div className="space-y-1">
             <Label htmlFor="log-phase">Phase</Label>
-            <select
+            <Select
               id="log-phase"
-              className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={phase}
               disabled={!deploymentId}
               onChange={(event) => setPhase(event.target.value)}
@@ -160,13 +163,12 @@ export const LogStream = ({ deploymentId }: { deploymentId: string | null }) => 
                   {item}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="space-y-1">
             <Label htmlFor="log-stream">Stream</Label>
-            <select
+            <Select
               id="log-stream"
-              className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={stream}
               disabled={!deploymentId}
               onChange={(event) => setStream(event.target.value)}
@@ -177,7 +179,7 @@ export const LogStream = ({ deploymentId }: { deploymentId: string | null }) => 
                   {item}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="space-y-1">
             <Label htmlFor="log-limit">Limit</Label>
@@ -235,7 +237,7 @@ export const LogStream = ({ deploymentId }: { deploymentId: string | null }) => 
 
         <div
           ref={scrollRef}
-          className="h-[300px] overflow-auto rounded-md border bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-100"
+          className="h-[300px] overflow-auto rounded-md border bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-100 shadow-inner dark:border-slate-800"
           onScroll={(event) => {
             const element = event.currentTarget;
             const distance = element.scrollHeight - element.scrollTop - element.clientHeight;

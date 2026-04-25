@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
+    --background: 210 24% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
@@ -24,6 +24,26 @@
     --radius: 0.5rem;
   }
 
+  .dark {
+    --background: 222 35% 8%;
+    --foreground: 210 40% 96%;
+    --card: 222 32% 11%;
+    --card-foreground: 210 40% 96%;
+    --primary: 210 40% 96%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 160 84% 39%;
+    --secondary-foreground: 156 100% 10%;
+    --muted: 222 24% 16%;
+    --muted-foreground: 215 20% 68%;
+    --accent: 37 92% 55%;
+    --accent-foreground: 24 95% 10%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 222 22% 20%;
+    --input: 222 22% 22%;
+    --ring: 160 84% 39%;
+  }
+
   * {
     @apply border-border;
   }
@@ -31,5 +51,9 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    @apply bg-secondary text-secondary-foreground;
   }
 }
