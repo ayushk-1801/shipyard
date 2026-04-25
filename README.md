@@ -123,12 +123,16 @@ npm run build
 
 Roughly 6-7 hours.
 
-## Deploy Feedback
+## Walkthrough
 
-I deployed a small React boilerplate app:
+Loom: https://www.loom.com/share/f6e9c35468a940dba86e4132cefe8fed
+
+## Brimble Feedback
+
+I deployed a small React boilerplate app on Brimble:
 
 ```text
-_add public deployment link before submission_
+https://my-react-app.brimble.app/
 ```
 
-The feedback write-up is in `docs/deploy-feedback.md`.
+The feedback write-up is in `docs/brimble-feedback.md`.
