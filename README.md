@@ -119,6 +119,16 @@ npm run build
 - Add zero-downtime readiness gates with per-app health check paths instead of the current basic HTTP probe.
 - Move image retention into a background garbage collector with clearer disk usage reporting.
 
+## Time Spent
+
+Roughly 6-7 hours.
+
 ## Brimble Feedback
 
-The Brimble deploy feedback belongs in `docs/brimble-feedback.md` after deploying a small app on Brimble. That link/write-up is still required for the final submission.
+I deployed a small React boilerplate app on Brimble:
+
+```text
+https://my-react-app.brimble.app/
+```
+
+The feedback write-up is in `docs/brimble-feedback.md`.
