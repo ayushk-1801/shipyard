@@ -1,0 +1,22 @@
+{
+	admin 0.0.0.0:2019
+	auto_https off
+}
+
+:80 {
+	handle /api/* {
+		reverse_proxy backend:3001 {
+			flush_interval -1
+		}
+	}
+
+	handle /d/* {
+		respond "Deployment route is not ready yet." 404
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

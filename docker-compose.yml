@@ -1,0 +1,55 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      DATABASE_PATH: /data/brimble.db
+      WORKSPACE_ROOT: /workspaces
+      PUBLIC_BASE_URL: http://localhost:8080
+      CADDY_ADMIN_URL: http://caddy:2019
+      DOCKER_NETWORK: brimble-runtime
+      BUILDKIT_HOST: tcp://buildkit:1234
+      RAILPACK_VERSION: v0.15.1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - brimble-data:/data
+      - brimble-workspaces:/workspaces
+    networks:
+      - brimble-runtime
+    depends_on:
+      - buildkit
+    restart: unless-stopped
+
+  buildkit:
+    image: moby/buildkit:buildx-stable-1
+    command: ["--addr", "tcp://0.0.0.0:1234"]
+    privileged: true
+    volumes:
+      - brimble-buildkit:/var/lib/buildkit
+    networks:
+      - brimble-runtime
+    restart: unless-stopped
+
+  caddy:
+    build:
+      context: .
+      dockerfile: ops/caddy/Dockerfile
+    ports:
+      - "8080:80"
+    networks:
+      - brimble-runtime
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  brimble-data:
+  brimble-workspaces:
+  brimble-buildkit:
+
+networks:
+  brimble-runtime:
+    name: brimble-runtime
