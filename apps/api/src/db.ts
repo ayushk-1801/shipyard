@@ -1,7 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
-import type { Deployment, DeploymentLog, DeploymentStatus, LogPhase, LogStream } from "./types.js";
+import type {
+  Deployment,
+  DeploymentImage,
+  DeploymentLog,
+  DeploymentStatus,
+  ImageBuildReason,
+  LogPhase,
+  LogRetentionOptions,
+  LogSearchOptions,
+  LogStream
+} from "./types.js";
 
 type DeploymentRow = {
   id: string;
@@ -31,6 +41,18 @@ type LogRow = {
   stream: LogStream;
   message: string;
   created_at: string;
+};
+
+type ImageRow = {
+  id: string;
+  deployment_id: string;
+  slug: string;
+  image_tag: string;
+  source_hash: string;
+  reason: ImageBuildReason;
+  is_active: 0 | 1;
+  created_at: string;
+  activated_at: string | null;
 };
 
 const deploymentFromRow = (row: DeploymentRow): Deployment => ({
@@ -63,6 +85,18 @@ const logFromRow = (row: LogRow): DeploymentLog => ({
   createdAt: row.created_at
 });
 
+const imageFromRow = (row: ImageRow): DeploymentImage => ({
+  id: row.id,
+  deploymentId: row.deployment_id,
+  slug: row.slug,
+  imageTag: row.image_tag,
+  sourceHash: row.source_hash,
+  reason: row.reason,
+  isActive: Boolean(row.is_active),
+  createdAt: row.created_at,
+  activatedAt: row.activated_at
+});
+
 const columnMap = {
   slug: "slug",
   sourceType: "source_type",
@@ -90,6 +124,10 @@ export class DeploymentStore {
     this.db.pragma("journal_mode = WAL");
     this.db.pragma("foreign_keys = ON");
     this.migrate();
+  }
+
+  close() {
+    this.db.close();
   }
 
   private migrate() {
@@ -125,8 +163,41 @@ export class DeploymentStore {
         PRIMARY KEY (deployment_id, seq)
       );
 
+      CREATE TABLE IF NOT EXISTS deployment_images (
+        id TEXT PRIMARY KEY,
+        deployment_id TEXT NOT NULL REFERENCES deployments(id) ON DELETE CASCADE,
+        slug TEXT NOT NULL,
+        image_tag TEXT NOT NULL,
+        source_hash TEXT NOT NULL,
+        reason TEXT NOT NULL CHECK (reason IN ('deploy', 'redeploy', 'rollback', 'backfill')),
+        is_active INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        activated_at TEXT,
+        UNIQUE (deployment_id, image_tag)
+      );
+
       CREATE INDEX IF NOT EXISTS logs_deployment_id_seq_idx ON logs (deployment_id, seq);
       CREATE INDEX IF NOT EXISTS deployments_status_idx ON deployments (status);
+      CREATE INDEX IF NOT EXISTS deployment_images_deployment_created_idx
+        ON deployment_images (deployment_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS deployment_images_deployment_active_idx
+        ON deployment_images (deployment_id, is_active);
+
+      INSERT OR IGNORE INTO deployment_images (
+        id, deployment_id, slug, image_tag, source_hash, reason, is_active, created_at, activated_at
+      )
+      SELECT
+        'backfill-' || id,
+        id,
+        slug,
+        image_tag,
+        image_tag,
+        'backfill',
+        CASE WHEN status = 'running' THEN 1 ELSE 0 END,
+        COALESCE(finished_at, updated_at, created_at),
+        CASE WHEN status = 'running' THEN COALESCE(finished_at, updated_at, created_at) ELSE NULL END
+      FROM deployments
+      WHERE image_tag IS NOT NULL;
     `);
   }
 
@@ -230,6 +301,143 @@ export class DeploymentStore {
     return rows.map(logFromRow);
   }
 
+  searchLogs(deploymentId: string, options: LogSearchOptions) {
+    const clauses = ["deployment_id = @deploymentId"];
+    const params: Record<string, unknown> = { deploymentId };
+
+    if (options.query?.trim()) {
+      clauses.push("LOWER(message) LIKE @query ESCAPE '\\'");
+      params.query = `%${escapeLike(options.query.trim().toLowerCase())}%`;
+    }
+
+    if (options.phase) {
+      clauses.push("phase = @phase");
+      params.phase = options.phase;
+    }
+
+    if (options.stream) {
+      clauses.push("stream = @stream");
+      params.stream = options.stream;
+    }
+
+    if (options.from) {
+      clauses.push("created_at >= @from");
+      params.from = options.from;
+    }
+
+    if (options.to) {
+      clauses.push("created_at <= @to");
+      params.to = options.to;
+    }
+
+    const limit = Math.min(Math.max(options.limit ?? 200, 1), 500);
+    params.limit = limit;
+
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM logs WHERE ${clauses.join(" AND ")} ORDER BY seq DESC LIMIT @limit`
+      )
+      .all(params) as LogRow[];
+    return rows.map(logFromRow).reverse();
+  }
+
+  deleteLogsByRetention(deploymentId: string, options: LogRetentionOptions) {
+    const clauses = ["deployment_id = @deploymentId"];
+    const params: Record<string, unknown> = { deploymentId };
+
+    if (options.keepLast !== undefined) {
+      const keepLast = Math.max(Math.floor(options.keepLast), 0);
+      const maxRow = this.db
+        .prepare("SELECT COALESCE(MAX(seq), 0) AS maxSeq FROM logs WHERE deployment_id = ?")
+        .get(deploymentId) as { maxSeq: number };
+      clauses.push("seq <= @maxSeqToDelete");
+      params.maxSeqToDelete = Math.max(maxRow.maxSeq - keepLast, 0);
+    }
+
+    if (options.olderThanDays !== undefined) {
+      const olderThanDays = Math.max(options.olderThanDays, 0);
+      const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000).toISOString();
+      clauses.push("created_at < @cutoff");
+      params.cutoff = cutoff;
+    }
+
+    if (clauses.length === 1) return 0;
+
+    const result = this.db.prepare(`DELETE FROM logs WHERE ${clauses.join(" AND ")}`).run(params);
+    return Number(result.changes);
+  }
+
+  insertImage(image: DeploymentImage) {
+    this.db
+      .prepare(
+        `
+        INSERT INTO deployment_images (
+          id, deployment_id, slug, image_tag, source_hash, reason, is_active, created_at, activated_at
+        ) VALUES (
+          @id, @deploymentId, @slug, @imageTag, @sourceHash, @reason, @isActive, @createdAt, @activatedAt
+        )
+      `
+      )
+      .run({
+        ...image,
+        isActive: image.isActive ? 1 : 0
+      });
+  }
+
+  getImage(deploymentId: string, imageId: string) {
+    const row = this.db
+      .prepare("SELECT * FROM deployment_images WHERE deployment_id = ? AND id = ?")
+      .get(deploymentId, imageId) as ImageRow | undefined;
+    return row ? imageFromRow(row) : null;
+  }
+
+  listImages(deploymentId: string) {
+    const rows = this.db
+      .prepare("SELECT * FROM deployment_images WHERE deployment_id = ? ORDER BY created_at DESC")
+      .all(deploymentId) as ImageRow[];
+    return rows.map(imageFromRow);
+  }
+
+  activateImage(deploymentId: string, imageId: string) {
+    const activatedAt = new Date().toISOString();
+    const transaction = this.db.transaction(() => {
+      this.db.prepare("UPDATE deployment_images SET is_active = 0 WHERE deployment_id = ?").run(deploymentId);
+      this.db
+        .prepare(
+          "UPDATE deployment_images SET is_active = 1, activated_at = ? WHERE deployment_id = ? AND id = ?"
+        )
+        .run(activatedAt, deploymentId, imageId);
+    });
+    transaction();
+    return this.getImage(deploymentId, imageId);
+  }
+
+  pruneImages(deploymentId: string, keepLimit: number) {
+    const keep = Math.max(keepLimit, 1);
+    const rows = this.db
+      .prepare(
+        `
+        SELECT * FROM deployment_images
+        WHERE deployment_id = ? AND is_active = 0
+        ORDER BY created_at DESC
+      `
+      )
+      .all(deploymentId) as ImageRow[];
+    const toDelete = rows.slice(keep);
+
+    if (!toDelete.length) return [];
+
+    const deleteImage = this.db.prepare("DELETE FROM deployment_images WHERE id = ?");
+    const transaction = this.db.transaction(() => {
+      for (const image of toDelete) {
+        deleteImage.run(image.id);
+      }
+    });
+    transaction();
+
+    return toDelete.map(imageFromRow);
+  }
+
   markInterruptedDeployments() {
     const interrupted = this.listDeployments(["pending", "building", "deploying"]);
     for (const deployment of interrupted) {
@@ -244,3 +452,5 @@ export class DeploymentStore {
     return interrupted.length;
   }
 }
+
+const escapeLike = (value: string) => value.replace(/[\\%_]/gu, (match) => `\\${match}`);

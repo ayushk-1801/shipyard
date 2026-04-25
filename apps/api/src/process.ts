@@ -34,21 +34,30 @@ export const runLoggedCommand = async (
   cwd: string,
   phase: LogPhase,
   onLine: LineHandler,
-  env: NodeJS.ProcessEnv = process.env
+  env: NodeJS.ProcessEnv = process.env,
+  signal?: AbortSignal
 ) => {
   await new Promise<void>((resolve, reject) => {
     let flushStdout = () => {};
     let flushStderr = () => {};
+    let settled = false;
     const child = spawn(command, args, {
       cwd,
       env,
+      signal,
       stdio: ["ignore", "pipe", "pipe"]
     });
 
     child.stdout.on("data", streamLines(phase, "stdout", onLine, (flush) => (flushStdout = flush)));
     child.stderr.on("data", streamLines(phase, "stderr", onLine, (flush) => (flushStderr = flush)));
-    child.on("error", reject);
+    child.on("error", (error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    });
     child.on("close", (code) => {
+      if (settled) return;
+      settled = true;
       flushStdout();
       flushStderr();
       if (code === 0) {

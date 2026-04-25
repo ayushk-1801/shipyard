@@ -5,6 +5,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
+import { z } from "zod";
 import { supportedArchive } from "./archive.js";
 import { config } from "./config.js";
 import { DeploymentStore } from "./db.js";
@@ -12,13 +13,27 @@ import { EventHub } from "./hub.js";
 import { DeploymentPipeline } from "./pipeline.js";
 import { hostUrlFor, nameFromSource, uniqueSlug } from "./slug.js";
 import { eventStream } from "./sse.js";
-import type { Deployment } from "./types.js";
+import type { Deployment, LogPhase, LogStream } from "./types.js";
 import { createDeploymentSchema } from "./validation.js";
 
 const app = new Hono();
 const store = new DeploymentStore(config.databasePath);
 const hub = new EventHub();
 const pipeline = new DeploymentPipeline(store, hub);
+
+const logPhases = ["system", "clone", "extract", "build", "deploy", "runtime"] as const;
+const logStreams = ["stdout", "stderr"] as const;
+const rollbackSchema = z.object({
+  imageId: z.string().min(1)
+});
+const retentionSchema = z
+  .object({
+    keepLast: z.coerce.number().int().min(0).max(10000).optional(),
+    olderThanDays: z.coerce.number().min(0).max(3650).optional()
+  })
+  .refine((value) => value.keepLast !== undefined || value.olderThanDays !== undefined, {
+    message: "Provide keepLast and/or olderThanDays."
+  });
 
 const isUploadFile = (value: unknown): value is File =>
   Boolean(
@@ -131,6 +146,58 @@ app.get("/api/deployments/:id", (c) => {
   return c.json({ deployment });
 });
 
+app.get("/api/deployments/:id/images", (c) => {
+  const id = c.req.param("id");
+  const deployment = store.getDeployment(id);
+  if (!deployment) {
+    throw new HTTPException(404, { message: "Deployment not found." });
+  }
+
+  return c.json({
+    images: store.listImages(id)
+  });
+});
+
+app.post("/api/deployments/:id/redeploy", (c) => {
+  const id = c.req.param("id");
+  try {
+    const deployment = pipeline.redeploy(id);
+    return c.json({ deployment });
+  } catch (error) {
+    throw actionError(error);
+  }
+});
+
+app.post("/api/deployments/:id/rollback", async (c) => {
+  const id = c.req.param("id");
+  const parsed = rollbackSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ error: "Invalid rollback request.", issues: parsed.error.flatten() }, 400);
+  }
+
+  try {
+    const result = pipeline.rollback(id, parsed.data.imageId);
+    return c.json(result);
+  } catch (error) {
+    throw actionError(error);
+  }
+});
+
+app.post("/api/deployments/:id/cancel", (c) => {
+  const id = c.req.param("id");
+  const deployment = store.getDeployment(id);
+  if (!deployment) {
+    throw new HTTPException(404, { message: "Deployment not found." });
+  }
+
+  const canceled = pipeline.cancel(id);
+  if (!canceled) {
+    throw new HTTPException(409, { message: "Deployment has no cancelable operation." });
+  }
+
+  return c.json({ canceled: true });
+});
+
 app.get("/api/deployments/:id/logs", (c) => {
   const id = c.req.param("id");
   const deployment = store.getDeployment(id);
@@ -167,6 +234,44 @@ app.get("/api/deployments/:id/logs", (c) => {
       unsubscribe();
     };
   });
+});
+
+app.get("/api/deployments/:id/logs/search", (c) => {
+  const id = c.req.param("id");
+  const deployment = store.getDeployment(id);
+  if (!deployment) {
+    throw new HTTPException(404, { message: "Deployment not found." });
+  }
+
+  const phase = c.req.query("phase");
+  const stream = c.req.query("stream");
+  const limit = c.req.query("limit");
+  const logs = store.searchLogs(id, {
+    query: c.req.query("query"),
+    phase: logPhases.includes(phase as LogPhase) ? (phase as LogPhase) : undefined,
+    stream: logStreams.includes(stream as LogStream) ? (stream as LogStream) : undefined,
+    from: c.req.query("from"),
+    to: c.req.query("to"),
+    limit: limit ? Number(limit) : undefined
+  });
+
+  return c.json({ logs });
+});
+
+app.post("/api/deployments/:id/logs/retention", async (c) => {
+  const id = c.req.param("id");
+  const deployment = store.getDeployment(id);
+  if (!deployment) {
+    throw new HTTPException(404, { message: "Deployment not found." });
+  }
+
+  const parsed = retentionSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ error: "Invalid retention request.", issues: parsed.error.flatten() }, 400);
+  }
+
+  const deleted = store.deleteLogsByRetention(id, parsed.data);
+  return c.json({ deleted });
 });
 
 app.post("/api/deployments", async (c) => {
@@ -262,3 +367,11 @@ serve(
     console.log(`API listening on http://0.0.0.0:${info.port}`);
   }
 );
+
+const actionError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.toLowerCase().includes("not found")) {
+    return new HTTPException(404, { message });
+  }
+  return new HTTPException(409, { message });
+};

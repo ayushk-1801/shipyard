@@ -25,5 +25,7 @@ export const config = {
   dockerNetwork: process.env.DOCKER_NETWORK ?? "brimble-runtime",
   railpackBin: process.env.RAILPACK_BIN ?? "railpack",
   defaultContainerPort: numberFromEnv("DEFAULT_CONTAINER_PORT", 3000),
-  maxUploadBytes: numberFromEnv("MAX_UPLOAD_BYTES", 50 * 1024 * 1024)
+  maxUploadBytes: numberFromEnv("MAX_UPLOAD_BYTES", 50 * 1024 * 1024),
+  imageHistoryLimit: numberFromEnv("IMAGE_HISTORY_LIMIT", 5),
+  gracefulStopSeconds: numberFromEnv("GRACEFUL_STOP_SECONDS", 10)
 };
