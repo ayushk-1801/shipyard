@@ -41,7 +41,7 @@ export class DeploymentPipeline {
     }
   }
 
-  startRouteSync(intervalMs = 30000) {
+  startRouteSync(intervalMs = 5000) {
     const timer = setInterval(() => {
       void this.syncRoutes().catch((error) => {
         console.error("Caddy route sync failed.", error);
@@ -51,7 +51,7 @@ export class DeploymentPipeline {
   }
 
   async syncRoutes() {
-    if (!this.store.listDeployments(["running"]).length) return;
+    await this.reconcileRunningDeployments();
     await this.reloadCaddyWithRetries();
   }
 
@@ -265,12 +265,52 @@ export class DeploymentPipeline {
     throw new Error(`Container did not respond on ${url}`);
   }
 
+  private async reconcileRunningDeployments() {
+    const running = this.store.listDeployments(["running"]);
+
+    for (const deployment of running) {
+      if (!deployment.containerName) {
+        this.transition(deployment.id, "failed", {
+          errorMessage: "Deployment is marked running but has no container name."
+        });
+        continue;
+      }
+
+      try {
+        const inspected = await this.docker.getContainer(deployment.containerName).inspect();
+        if (!inspected.State?.Running) {
+          this.transition(deployment.id, "failed", {
+            errorMessage: `Container is not running (${inspected.State?.Status ?? "unknown"}).`
+          });
+          continue;
+        }
+
+        if (deployment.containerId !== inspected.Id) {
+          const updated = this.store.updateDeployment(deployment.id, {
+            containerId: inspected.Id
+          });
+          if (updated) this.hub.publishStatus(updated);
+        }
+      } catch (error) {
+        const dockerError = error as { statusCode?: number; message?: string };
+        if (dockerError.statusCode === 404) {
+          this.transition(deployment.id, "failed", {
+            errorMessage: "Container no longer exists."
+          });
+          continue;
+        }
+
+        throw error;
+      }
+    }
+  }
+
   private async reloadCaddyWithRetries(extra?: Deployment) {
     const running = this.store
       .listDeployments(["running"])
       .filter((deployment) => deployment.containerName && deployment.id !== extra?.id);
     const deployments = extra ? [extra, ...running] : running;
-    const caddyfile = renderCaddyfile(deployments);
+    const caddyfile = renderCaddyfile(deployments, config.publicHostname);
 
     let lastError: unknown;
     for (let attempt = 1; attempt <= 30; attempt += 1) {

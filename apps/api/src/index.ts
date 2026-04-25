@@ -43,6 +43,12 @@ const persistUpload = async (id: string, file: File) => {
     });
   }
 
+  if (file.size > config.maxUploadBytes) {
+    throw new HTTPException(413, {
+      message: `Archive is too large. Max size is ${Math.floor(config.maxUploadBytes / 1024 / 1024)}MB.`
+    });
+  }
+
   const uploadsDir = path.join(config.workspaceRoot, "uploads");
   await fs.mkdir(uploadsDir, { recursive: true });
 
@@ -61,6 +67,25 @@ app.use(
     allowHeaders: ["Content-Type", "Last-Event-ID"]
   })
 );
+
+app.use("/api/deployments", async (c, next) => {
+  if (c.req.method !== "POST") {
+    await next();
+    return;
+  }
+
+  const contentLength = Number(c.req.header("Content-Length") ?? 0);
+  const maxRequestBytes = config.maxUploadBytes + 1024 * 1024;
+  if (Number.isFinite(contentLength) && contentLength > maxRequestBytes) {
+    throw new HTTPException(413, {
+      message: `Request is too large. Max archive size is ${Math.floor(
+        config.maxUploadBytes / 1024 / 1024
+      )}MB.`
+    });
+  }
+
+  await next();
+});
 
 app.get("/api/health", (c) =>
   c.json({

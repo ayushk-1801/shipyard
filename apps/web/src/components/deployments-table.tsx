@@ -66,7 +66,7 @@ export const DeploymentsTable = ({ deployments, selectedId, onSelect }: Deployme
                 <TableCell>
                   {deployment.status === "running" ? (
                     <a
-                      href={deployment.liveUrl}
+                      href={deployment.hostUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:underline"

@@ -33,6 +33,12 @@ describe("renderCaddyfile", () => {
     expect(caddyfile).toContain("reverse_proxy brimble-sample-app-dep:3000");
   });
 
+  it("uses the configured public hostname for host routes", () => {
+    const caddyfile = renderCaddyfile([deployment], "preview.example.com");
+
+    expect(caddyfile).toContain("@host_sample_app host sample-app.preview.example.com");
+  });
+
   it("does not route failed deployments", () => {
     const caddyfile = renderCaddyfile([{ ...deployment, status: "failed" }]);
 

@@ -2,7 +2,7 @@ import type { Deployment } from "./types.js";
 
 const matcherName = (slug: string) => `host_${slug.replace(/-/gu, "_")}`;
 
-export const renderCaddyfile = (deployments: Deployment[]) => {
+export const renderCaddyfile = (deployments: Deployment[], publicHostname = "localhost") => {
   const running = deployments.filter(
     (deployment) =>
       deployment.status === "running" && deployment.containerName && deployment.containerPort
@@ -11,7 +11,7 @@ export const renderCaddyfile = (deployments: Deployment[]) => {
   const hostRoutes = running
     .map(
       (deployment) => `
-	@${matcherName(deployment.slug)} host ${deployment.slug}.localhost
+	@${matcherName(deployment.slug)} host ${deployment.slug}.${publicHostname}
 	handle @${matcherName(deployment.slug)} {
 		reverse_proxy ${deployment.containerName}:${deployment.containerPort}
 	}

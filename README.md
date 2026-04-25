@@ -7,6 +7,7 @@ A one-page local PaaS slice for the Brimble take-home: Vite + TanStack UI, Hono 
 Prerequisites:
 - Docker with Compose
 - Internet access for the first image/package/Railpack downloads
+- Uploaded archives must be `.zip`, `.tar.gz`, or `.tgz`; the default max upload size is `50MB`.
 
 Start everything:
 
@@ -27,6 +28,8 @@ http://localhost:8080/d/<slug>/
 http://<slug>.localhost:8080/
 ```
 
+The hostname route is the preferred live URL for apps that generate absolute asset paths such as `/assets/app.js`. The path route is useful for quick inspection, but apps that assume they live at `/` may need the hostname route.
+
 ## Try The Sample App
 
 Create an archive from the included sample app:
@@ -37,6 +40,8 @@ tar -czf node-hello.tgz -C examples/node-hello .
 
 In the UI, choose Upload, select `node-hello.tgz`, keep port `3000`, and deploy. Logs should stream through `pending -> building -> deploying -> running`.
 
+For Git deployments, HTTPS URLs like `https://github.com/org/repo.git` and SSH-style URLs like `git@github.com:org/repo.git` are accepted. Private repositories require whatever credentials are already available to the backend container.
+
 ## Architecture
 
 - `apps/web`: Vite React app using TanStack Router, TanStack Query, Tailwind CSS, and shadcn-style local components.
@@ -44,7 +49,7 @@ In the UI, choose Upload, select `node-hello.tgz`, keep port `3000`, and deploy.
 - `ops/caddy`: Caddy image that builds/serves the frontend and exposes only port `8080` on the host.
 - `examples/node-hello`: Dockerfile-free sample app for Railpack.
 
-The backend talks to the Compose-managed BuildKit service through `BUILDKIT_HOST` for Railpack builds, and mounts `/var/run/docker.sock` to load/start deployment containers on the shared `brimble-runtime` network. That is intentionally simple for this local assignment and intentionally not a production security model for untrusted multi-tenant code.
+The backend talks to the Compose-managed BuildKit service through `BUILDKIT_HOST` for Railpack builds, and mounts `/var/run/docker.sock` to load/start deployment containers on the shared `brimble-runtime` network. It periodically reconciles SQLite `running` deployments against Docker so stale containers are marked failed and removed from Caddy routes. That is intentionally simple for this local assignment and intentionally not a production security model for untrusted multi-tenant code.
 
 ## API
 
@@ -82,7 +87,7 @@ docker ps -aq --filter label=brimble.assignment=true | xargs -r docker rm -f
 Remove local images from sample deploys:
 
 ```bash
-docker images --format '{{.Repository}}:{{.Tag}}' | grep '^brimble-' | xargs -r docker rmi
+docker images --format '{{.Repository}}:{{.Tag}}' | grep '^brimble-brimble-' | xargs -r docker rmi
 ```
 
 ## Tests
